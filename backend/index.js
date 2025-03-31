@@ -1,88 +1,83 @@
-import express from 'express';
-import cors from 'cors';
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import cookieParser from 'cookie-parser';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+
+
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
 dotenv.config();
 const app = express();
-
-// Middleware
-app.use(cors({ origin: 'http://localhost:5000', credentials: true }));
 app.use(express.json());
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(cookieParser());
 
-// MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-}).then(() => console.log("MongoDB Connected"))
-  .catch(err => console.log(err));
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}).then(() => console.log("MongoDB Connected")).catch(err => console.log(err));
 
-// User Model
-const User = mongoose.model('User', new mongoose.Schema({
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-}));
+const UserSchema = new mongoose.Schema({
+  name: String,
+  email: { type: String, unique: true },
+  password: String,
+  role: String
+});
+const User = mongoose.model("User", UserSchema);
 
-// Registration Route
-app.post('/api/register', async (req, res) => {
-    const { name, email, password, confirmPassword } = req.body;
+const generateToken = (user) => {
+  return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+};
 
-    if (!name || !email || !password || !confirmPassword) {
-        return res.status(400).json({ message: "All fields are required" });
-    }
+// **Register Route**
+app.post("/register", async (req, res) => {
+  const { name, email, password, confirmPassword, role } = req.body;
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        return res.status(400).json({ message: "Invalid email format" });
-    }
+  if (!name || !email || !password || !confirmPassword || !role) 
+    return res.status(400).json({ error: "All fields are required" });
 
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!passwordRegex.test(password)) {
-        return res.status(400).json({ message: "Password must contain at least 1 uppercase, 1 lowercase, 1 number, and 1 special character" });
-    }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) return res.status(400).json({ error: "Invalid email format" });
 
-    if (password !== confirmPassword) {
-        return res.status(400).json({ message: "Passwords do not match" });
-    }
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(password)) 
+    return res.status(400).json({ error: "Password must contain 1 uppercase, 1 lowercase, 1 number, 1 special character, and be at least 8 characters long" });
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-        return res.status(400).json({ message: "User already exists" });
-    }
+  if (password !== confirmPassword) 
+    return res.status(400).json({ error: "Passwords do not match" });
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ name, email, password: hashedPassword });
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  try {
+    const newUser = new User({ name, email, password: hashedPassword, role });
     await newUser.save();
-
-    res.status(201).json({ message: "User registered successfully" });
+    res.json({ message: "User registered successfully" });
+  } catch (error) {
+    res.status(400).json({ error: "Email already exists" });
+  }
 });
 
-// Login Route
-app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
+// **Login Route**
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "User not found, please register" });
+  if (!user) return res.status(400).json({ error: "User not found, please register first" });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
 
-    const token = jwt.sign({ id: user._id }, "secretkey", { expiresIn: '1h' });
-
-    res.cookie('token', token, { httpOnly: true, secure: false });
-    res.json({ message: "Login successful" });
+  const token = generateToken(user);
+  res.cookie("token", token, { httpOnly: true, secure: false });
+  res.json({ message: "Login successful" });
 });
 
-// Logout Route
-app.post('/api/logout', (req, res) => {
-    res.clearCookie('token');
-    res.json({ message: "Logged out successfully" });
+// **Logout Route**
+app.post("/logout", (req, res) => {
+  res.clearCookie("token");
+  res.json({ message: "Logged out successfully" });
 });
 
-// Start Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// **Start Server**
+app.listen(5000, () => console.log("Server running on port 5000"));
