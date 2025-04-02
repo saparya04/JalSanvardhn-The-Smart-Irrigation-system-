@@ -2,86 +2,54 @@ import { useState } from "react";
 import axios from "axios";
 
 const CropData = () => {
-  const [form, setForm] = useState({ cropType: "", currentStage: "", farmLocation: "", soilType: "", irrigationMethod: "", waterSource: "" });
+  const [form, setForm] = useState({ cropType: "", soilType: "", region: "", weatherCondition: "", area: "" });
+  const [report, setReport] = useState(null);
+  const [error, setError] = useState(null);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
     const userId = localStorage.getItem("userId");
-    await axios.post("http://localhost:5000/api/crop/save", { ...form, userId });
-    alert("Crop data saved!");
+
+    if (!userId) {
+      setError("User ID not found. Please log in.");
+      return;
+    }
+
+    try {
+      const { data } = await axios.post("http://localhost:5000/api/crop/save", { ...form, userId });
+      setReport(data);
+    } catch (err) {
+      setError(err.response?.data?.error || "Something went wrong.");
+    }
   };
 
   return (
     <div>
       <h2>Enter Crop Details</h2>
+      {error && <p style={{ color: "red" }}>{error}</p>}
       <form onSubmit={handleSubmit}>
-        {/* Crop Type Dropdown */}
-        <label>Crop Type:</label>
-        <select name="cropType" onChange={handleChange} required>
-          <option value="">Select Crop Type</option>
-          <option value="Wheat">Wheat</option>
-          <option value="Rice">Rice</option>
-          <option value="Maize">Maize</option>
-          <option value="Soybean">Soybean</option>
-        </select>
-
-        {/* Crop Growth Stage Dropdown */}
-        <label>Current Stage of Crop:</label>
-        <select name="currentStage" onChange={handleChange} required>
-          <option value="">Select Stage</option>
-          <option value="Germination">Germination</option>
-          <option value="Vegetative">Vegetative</option>
-          <option value="Flowering">Flowering</option>
-          <option value="Maturity">Maturity</option>
-        </select>
-
-        {/* Farm Location Dropdown */}
-        <label>Farm Location:</label>
-        <select name="farmLocation" onChange={handleChange} required>
-          <option value="">Select Location</option>
-          <option value="North">North</option>
-          <option value="South">South</option>
-          <option value="East">East</option>
-          <option value="West">West</option>
-        </select>
-
-        {/* Soil Type Dropdown */}
-        <label>Soil Type:</label>
-        <select name="soilType" onChange={handleChange} required>
-          <option value="">Select Soil Type</option>
-          <option value="Sandy">Sandy</option>
-          <option value="Clayey">Clayey</option>
-          <option value="Loamy">Loamy</option>
-          <option value="Silty">Silty</option>
-        </select>
-
-        {/* Irrigation Method Dropdown */}
-        <label>Irrigation Method:</label>
-        <select name="irrigationMethod" onChange={handleChange} required>
-          <option value="">Select Irrigation Method</option>
-          <option value="Drip">Drip</option>
-          <option value="Sprinkler">Sprinkler</option>
-          <option value="Surface">Surface</option>
-          <option value="Subsurface">Subsurface</option>
-        </select>
-
-        {/* Water Source Dropdown */}
-        <label>Water Source:</label>
-        <select name="waterSource" onChange={handleChange} required>
-          <option value="">Select Water Source</option>
-          <option value="River">River</option>
-          <option value="Borewell">Borewell</option>
-          <option value="Rainwater">Rainwater</option>
-          <option value="Canal">Canal</option>
-        </select>
-
+        <input type="text" name="cropType" placeholder="Crop Type" value={form.cropType} onChange={handleChange} required />
+        <input type="text" name="soilType" placeholder="Soil Type" value={form.soilType} onChange={handleChange} required />
+        <input type="text" name="region" placeholder="Region" value={form.region} onChange={handleChange} required />
+        <input type="text" name="weatherCondition" placeholder="Weather Condition" value={form.weatherCondition} onChange={handleChange} required />
+        <input type="text" name="area" placeholder="Location" value={form.area} onChange={handleChange} required />
         <button type="submit">Save Details</button>
       </form>
+
+      {report && (
+        <div>
+          <h3>Report</h3>
+          <p>Temperature: {report.temperature}°C</p>
+          <p>Irrigation Flow Rate: {report.irrigationFlowRate}</p>
+        </div>
+      )}
     </div>
   );
 };
 
 export default CropData;
-

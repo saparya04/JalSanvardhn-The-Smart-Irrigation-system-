@@ -18,7 +18,6 @@ import cropRoutes from "./routes/cropRoutes.js";
 app.use("/api/auth", authRoutes);
 app.use("/api/crop", cropRoutes);
 
-// Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log("MongoDB Connected"))
     .catch(err => console.log(err));
