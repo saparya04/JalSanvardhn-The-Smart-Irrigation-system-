@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 
 const CropData = () => {
-  const [form, setForm] = useState({ cropType: "", soilType: "", region: "", weatherCondition: "", area: "" });
+  const [form, setForm] = useState({ cropType: "", cropDays: "", area: "" });
   const [report, setReport] = useState(null);
   const [error, setError] = useState(null);
 
@@ -34,9 +34,7 @@ const CropData = () => {
       {error && <p style={{ color: "red" }}>{error}</p>}
       <form onSubmit={handleSubmit}>
         <input type="text" name="cropType" placeholder="Crop Type" value={form.cropType} onChange={handleChange} required />
-        <input type="text" name="soilType" placeholder="Soil Type" value={form.soilType} onChange={handleChange} required />
-        <input type="text" name="region" placeholder="Region" value={form.region} onChange={handleChange} required />
-        <input type="text" name="weatherCondition" placeholder="Weather Condition" value={form.weatherCondition} onChange={handleChange} required />
+        <input type="number" name="cropDays" placeholder="Crop Days" value={form.cropDays} onChange={handleChange} required />
         <input type="text" name="area" placeholder="Location" value={form.area} onChange={handleChange} required />
         <button type="submit">Save Details</button>
       </form>
@@ -45,7 +43,11 @@ const CropData = () => {
         <div>
           <h3>Report</h3>
           <p>Temperature: {report.temperature}°C</p>
-          <p>Irrigation Flow Rate: {report.irrigationFlowRate}</p>
+          <p>Humidity: {report.humidity}%</p>
+          <p>Soil Moisture: {report.soilMoisture}</p>
+          <p style={{ color: report.irrigationRequired ? "red" : "green" }}>
+            {report.irrigationRequired ? "Irrigation is required" : "No irrigation required"}
+          </p>
         </div>
       )}
     </div>
