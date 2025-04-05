@@ -23,7 +23,7 @@ const getSoilMoisture = async (latitude, longitude) => {
     try {
         const response = await axios.get(`${process.env.WEATHERBIT_API}?lat=${latitude}&lon=${longitude}&key=${process.env.WEATHERBIT_KEY}`);
         return{
-            soilMoisture: Math.round(response.data.data[0].soilm_0_10cm)
+            soilMoisture: Math.round(response.data.data[0].soilm_10_40cm) 
         };
     } catch (error) {
         console.error("Error fetching soil moisture data:", error.message);
@@ -60,7 +60,7 @@ router.post("/save", async (req, res) => {
         }
 
         // Call Flask API for irrigation prediction
-        const flaskResponse = await axios.post("http://127.0.0.1:5002/predict", {
+        const flaskResponse = await axios.post("http://127.0.0.1:5001/predict", {
             cropType, cropDays, temperature: weatherData.temperature, humidity: weatherData.humidity, soilMoisture
         }).catch(err => {
             throw new Error(`Flask API Error: ${err.response?.data?.error || err.message}`);
