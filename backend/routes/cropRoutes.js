@@ -7,16 +7,15 @@ const router = express.Router();
 // Fetch Weather Data (Temperature & Humidity)
 const getWeatherData = async (latitude, longitude) => {
     try {
-        const response = await axios.get(`${process.env.OPEN_METEO_API}?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+        const response = await axios.get(`${process.env.OPEN_METEO_API}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m`);
         return {
-            temperature: Math.round(response.data.current_weather.temperature),
-            humidity: Math.round(response.data.current_weather.relative_humidity)
+            temperature: Math.round(response.data.current.temperature_2m),
+            humidity: Math.round(response.data.current.relative_humidity_2m)
         };
     } catch (error) {
-        console.error("Error fetching weather data:", error.message);
-        return null;
+        throw new Error('Failed to fetch weather data');
     }
-};
+};    
 
 // Fetch Soil Moisture Data
 const getSoilMoisture = async (latitude, longitude) => {
@@ -60,11 +59,22 @@ router.post("/save", async (req, res) => {
         }
 
         // Call Flask API for irrigation prediction
-        const flaskResponse = await axios.post("http://127.0.0.1:5001/predict", {
-            cropType, cropDays, temperature: weatherData.temperature, humidity: weatherData.humidity, soilMoisture
-        }).catch(err => {
+        const predictionData = {
+            cropType,
+            cropDays,
+            temperature: weatherData.temperature,
+            humidity: weatherData.humidity,
+            soilMoisture: soilMoisture.soilMoisture
+        };
+
+        // 🔍 Print data being sent to Flask API
+        console.log("Data sent to Flask API:", predictionData);
+
+        // Call Flask API for irrigation prediction
+        const flaskResponse = await axios.post("http://127.0.0.1:5001/predict", predictionData).catch(err => {
             throw new Error(`Flask API Error: ${err.response?.data?.error || err.message}`);
         });
+
 
         const irrigationRequired = flaskResponse.data["Irrigation Required"];
 
